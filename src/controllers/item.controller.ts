@@ -28,9 +28,9 @@ const store = async (request: Request, response: Response) => {
 
 
 const show = async (request: Request, response: Response) => {
-    const id: number = parseInt(request.params.id, 10);
+    const id: string = request.params.id;
     try {
-        const item: Item = await ItemService.find(id);
+        const item: Item | null = await ItemService.find(id);
 
         if (item) {
             return response.status(HttpResponse.HTTP_OK).send(item);
@@ -42,12 +42,12 @@ const show = async (request: Request, response: Response) => {
 };
 
 const update = async (request: Request, response: Response) => {
-    const id: number = parseInt(request.params.id, 10);
+    const id: string = request.params.id;
 
     try {
         const itemUpdate: Item = request.body;
 
-        const existingItem: Item = await ItemService.find(id);
+        const existingItem: Item | null = await ItemService.find(id);
 
         if (existingItem) {
             const updatedItem = await ItemService.update(id, itemUpdate);
@@ -64,7 +64,7 @@ const update = async (request: Request, response: Response) => {
 
 const destroy = async (request: Request, response: Response) => {
     try {
-        const id: number = parseInt(request.params.id, 10);
+        const id: string = request.params.id;
         await ItemService.remove(id);
         response.sendStatus(HttpResponse.HTTP_NO_CONTENT);
     } catch (e: any) {
