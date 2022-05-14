@@ -1,15 +1,19 @@
 
 import { Request, Response } from "express";
 
-import { BaseItem, Item } from "../types/items/item.interface";
+import { BaseItem, Item as ItemType } from "../types/items/item.interface";
 
-import * as ItemService from "../services/items/item.service"
+import * as ItemService from "../services/items/item.service";
 
-import HttpResponse from "../enums/response"
+import HttpResponse from "../enums/response";
+
+import { body, validationResult } from 'express-validator';
+import { Item } from "../models/item.model";
+
 
 const index = async (request: Request, response: Response) => {
     try {
-        const items: Item[] = await ItemService.findAll();
+        const items: ItemType[] = await ItemService.findAll();
         return response.status(HttpResponse.HTTP_OK).send(items);
     } catch (e: any) {
         return response.status(HttpResponse.HTTP_INTERNAL_SERVER_ERROR).send(e.message);
@@ -18,6 +22,10 @@ const index = async (request: Request, response: Response) => {
 
 const store = async (request: Request, response: Response) => {
     try {
+        const errors = validationResult(request);
+        if (!errors.isEmpty()) {
+            return response.status(422).json({ errors: errors.array() });
+        }
         const item: BaseItem = request.body;
         const newItem = await ItemService.create(item);
         response.status(HttpResponse.HTTP_CREATED).json(newItem);
@@ -30,7 +38,7 @@ const store = async (request: Request, response: Response) => {
 const show = async (request: Request, response: Response) => {
     const id: string = request.params.id;
     try {
-        const item: Item | null = await ItemService.find(id);
+        const item: ItemType | null = await ItemService.find(id);
 
         if (item) {
             return response.status(HttpResponse.HTTP_OK).send(item);
@@ -43,13 +51,16 @@ const show = async (request: Request, response: Response) => {
 
 const update = async (request: Request, response: Response) => {
     const id: string = request.params.id;
-
     try {
-        const itemUpdate: Item = request.body;
+        const itemUpdate: ItemType = request.body;
 
-        const existingItem: Item | null = await ItemService.find(id);
+        const existingItem: ItemType | null = await ItemService.find(id);
 
         if (existingItem) {
+            const errors = validationResult(request);
+            if (!errors.isEmpty()) {
+                return response.status(422).json({ errors: errors.array() });
+            }
             const updatedItem = await ItemService.update(id, itemUpdate);
             return response.status(HttpResponse.HTTP_OK).json(updatedItem);
         }
@@ -72,7 +83,26 @@ const destroy = async (request: Request, response: Response) => {
     }
 };
 
+
+const validation = () => {
+    return [
+        body('name', 'Name is Required')
+            .exists()
+            .custom((value) => {
+                if (value) {
+                    return Item.findOne({ where: { email: value } }).then((item) => {
+                        if (item) {
+                            return Promise.reject('Name is Taken');
+                        }
+                    });
+                }
+            }),
+        body('price', 'Price is Required').exists(),
+    ];
+};
+
 export {
+    validation,
     index,
     store,
     show,

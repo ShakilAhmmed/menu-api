@@ -6,7 +6,7 @@ import * as ItemController from "../controllers/item.controller"
 
 router.route("/items")
     .get(ItemController.index)
-    .post(ItemController.store);
+    .post(ItemController.validation(), ItemController.store);
 
 
 router.route("/items/:id")
